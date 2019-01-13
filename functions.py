@@ -1,5 +1,7 @@
-import numpy as np
+from typing import Any, Union
+
 from aircraft_params import *
+import math
 
 
 def aerodynamic_forces_moments(current_states, current_inputs):
@@ -42,3 +44,57 @@ def aerodynamic_forces_moments(current_states, current_inputs):
     m_z = m_z[0] + m_z[1]
     forces_moments = [f_x, f_y, f_z, m_x, m_y, m_z]
     return forces_moments
+
+
+def calculate_state_differentials(F_M_aero, states):
+
+    # states
+    V = states[3]  # airspeed
+    beta = states[4]  # sideslip angle
+    alpha = states[5]  # angle of attack
+    p = states[6]  # roll rate
+    q = states[7]  # pitch rate
+    r = states[8]  # yaw rate
+    phi = states[9]  # roll angle
+    theta = states[10]  # pitch angle
+    psi = states[11]  # flight path angle
+
+    #  intermediate states
+    u = V * math.cos(alpha) * math.cos(beta)
+    v = V * math.sin(beta)
+    w: Union[float, Any] = V * math.sin(alpha) * math.cos(beta)
+
+    # intermediate state differentials
+    u_dot = r * v - q * w - g * math.sin(theta) + F_M_aero[0] / mass
+    v_dot = p * w - r * u + g * math.sin(phi) * math.cos(theta) + F_M_aero[1] / mass
+    w_dot = q * u - p * v + g * math.cos(phi) * math.cos(theta) + F_M_aero[2] / mass
+    
+    # state differentials
+    V_dot = (u * u_dot + v * v_dot + w * w_dot) / V  # airspeed
+    beta_dot = (V * v_dot - v * V_dot) / (V ** 2 * math.cos(beta))
+    alpha_dot = (u * w_dot - w * u_dot) / (u ** 2 + w ** 2)
+
+    I1 = Ixz * (Iyy - Ixx - Izz)
+    I2 = (Ixx * Izz - Ixz ** 2)
+    p_dot = (Izz * F_M_aero[3] + Ixz * F_M_aero[5] - (I1 * p + (Ixz ** 2 + Izz * (Izz - Iyy)) * r) * q) / I2
+    q_dot = (F_M_aero[4] - (Ixx - Izz) * p * r - Ixz * (p ** 2 - r ** 2)) / Iyy  # neglecting thrusting moments
+    r_dot = (Ixz * F_M_aero[3] + Ixx * F_M_aero[5] + (I1 * r + (Ixz ** 2 + Ixx * (Ixx - Iyy)) * p) * q) / I2
+
+    phi_dot = p + (q * math.sin(phi) + r * math.cos(phi)) * math.tan(theta)
+    theta_dot = q * math.cos(phi) - r * math.sin(phi)
+    psi_dot = (q * math.sin(phi) + r * math.cos(phi)) / math.cos(theta)
+
+    n_dot = u * math.cos(theta) * math.cos(psi) + v * \
+            (math.sin(phi) * math.sin(theta) * math.cos(psi) - math.cos(phi) * math.sin(psi)) + \
+            w * (math.sin(phi) * math.sin(psi) + math.cos(phi) * math.sin(theta) * math.cos(psi))
+    e_dot = u * math.cos(theta) * math.sin(psi) + v * \
+            (math.cos(phi) * math.cos(psi) + math.sin(phi) * math.sin(theta) * math.sin(psi)) + w * \
+            (math.cos(phi) * math.sin(theta) * math.sin(psi) - math.sin(phi) * math.cos(psi))
+
+    d_dot = -u * math.sin(theta) + v * math.sin(phi) * math.cos(theta) + w * math.cos(phi) * math.cos(theta)
+
+    state_differentials = [n_dot, e_dot, d_dot, V_dot, alpha_dot, beta_dot,
+                           p_dot, q_dot, r_dot, phi_dot, theta_dot, psi_dot]
+
+    return state_differentials
+
