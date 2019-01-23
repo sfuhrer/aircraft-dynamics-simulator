@@ -2,21 +2,6 @@ from functions import aerodynamic_forces_moments
 from functions import calculate_state_differentials
 from functions import plot_states_and_inputs
 from aircraft_params import *
-# from tkinter import *
-import tkinter
-import tkinter.messagebox
-
-
-top = tkinter.Tk()
-
-def helloCallBack():
-   print( "Hello Python", "Hello World")
-
-B = tkinter.Button(top, text ="Hello", command = helloCallBack)
-
-B.pack()
-top.mainloop()
-
 
 
 # set some simulations parameters
