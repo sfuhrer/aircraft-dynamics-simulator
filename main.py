@@ -9,15 +9,17 @@ t_end = 10  # duration
 
 # set initial states
 pos_0 = [0.0, 0.0, 0.0]
-vel_0 = [8.0, 0.0, 0.0]
+vel_0 = 8.0
+alpha_0 = 0
+beta_0 = 0
 orient_0 = [0.0, 0.0, 0.0]
 bodyrates_0 = [0.0, 0.0, 0.0]
-x_0 = [pos_0[0], pos_0[1], pos_0[2], vel_0[0], vel_0[1], vel_0[2], orient_0[0], orient_0[1], orient_0[2],
+x_0 = [pos_0[0], pos_0[1], pos_0[2], vel_0, alpha_0, beta_0, orient_0[0], orient_0[1], orient_0[2],
        bodyrates_0[0], bodyrates_0[1], bodyrates_0[2]]
 
 
-u_0 = [0, 0, 10000, 10000]
-
+u_0 = [-5, -5, 10000, 10000]
+# u_elevon_vec = [0, 0, ]
 
 # start simulation
 x = x_0
@@ -51,12 +53,4 @@ while t < t_end:
 
 print("states after simulation: " + str(x))
 
-plot_states_and_inputs(t_vec, x_array, u_array)
-
-# X = np.linspace(-np.pi, np.pi, 256, endpoint=True)
-# C, S = np.cos(X), np.sin(X)
-#
-# plt.plot(X, C)
-# plt.plot(X, S)
-#
-# plt.show()
+# plot_states_and_inputs(t_vec, x_array, u_array)
