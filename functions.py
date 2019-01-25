@@ -18,9 +18,9 @@ def aerodynamic_forces_moments(current_states, current_inputs):
 
     d_f_x_rpm2 = np.dot(coeff_f_x_rpm2, helper_f_x_rpm2)
     d_m_x_0_0 = np.dot(coeff_m_x_0, helper_m_x_0_0)
-    d_m_x_0_1 = np.dot(coeff_m_x_0, helper_m_x_0_1)
+    d_m_x_0_1 = np.dot(coeff_m_x_0, helper_m_x_0_1) * (-1)
     d_m_x_delta_0 = np.dot(coeff_m_x_delta, helper_m_x_y_delta_0)
-    d_m_x_delta_1 = np.dot(coeff_m_x_delta, helper_m_x_y_delta_1)
+    d_m_x_delta_1 = np.dot(coeff_m_x_delta, helper_m_x_y_delta_1) * (-1)
     d_m_y_delta_0 = np.dot(coeff_m_y_delta, helper_m_x_y_delta_0)
     d_m_y_delta_1 = np.dot(coeff_m_y_delta, helper_m_x_y_delta_1)
 
@@ -28,17 +28,13 @@ def aerodynamic_forces_moments(current_states, current_inputs):
     m_x = [d_m_x_0_0 + d_m_x_delta_0*delta[0], d_m_x_0_1 + d_m_x_delta_1*delta[1]]
     m_y = [d_m_y_delta_0 * delta[0], d_m_y_delta_1 * delta[1]]
 
-
     f_x_combined = f_x[0] + f_x[1]
-    # print(f_x[0])
-    # print(f_x_combined)
     f_y_combined = 0.0
     f_z_combined = 0.0
     m_x_combined = m_x[0] + m_x[1]
     m_y_combined = m_y[0] + m_y[1]
-    m_z_combined = 0.0
+    m_z_combined = (f_x[0] - f_x[1]) * l_y
     forces_moments = [f_x_combined, f_y_combined, f_z_combined, m_x_combined, m_y_combined, m_z_combined]
-    # print(forces_moments)
     return forces_moments
 
 
@@ -59,7 +55,6 @@ def calculate_state_differentials(F_M_aero, states):
     u = V * math.cos(alpha) * math.cos(beta)
     v = V * math.sin(beta)
     w = V * math.sin(alpha) * math.cos(beta)
-    # w: Union[float, Any] = V * math.sin(alpha) * math.cos(beta)
 
     # intermediate state differentials
     u_dot = r * v - q * w - g * math.sin(theta) + F_M_aero[0] / mass

@@ -7,66 +7,104 @@ import tkinter
 import tkinter.messagebox
 
 
-top = tkinter.Tk()
-
-def helloCallBack():
-   print( "Hello Python", "Hello World")
-
-B = tkinter.Button(top, text ="Hello", command = helloCallBack)
-
-B.pack()
-top.mainloop()
+states_list = 'V [m/s]', 'alpha [°]', 'beta [°]', 'pitch [°]', 'roll [°]'
+states_defaults = [10, 0, 0, 0, 0]
+inputs_list = 'delta_0 [°]', 'delta_1 [°]', 'rpm_0 [rpm]', 'rpm_1 [rpm]'
+inputs_defaults = [0, 0, 8000, 8000]
 
 
+def make_entryfields(frame, fields, defaults):
+    entries = []
+    for idx, field in enumerate(fields):
+        row = tkinter.Frame(frame)  # makes a new frame for every state
+        lab = tkinter.Label(row, width=15, text=field)
+        ent = tkinter.Entry(row)
+        row.pack(side=tkinter.TOP, fill=tkinter.X, padx=5, pady=5)  # new frame = state: put below the one before
+        lab.pack(side=tkinter.LEFT)
+        ent.pack(side=tkinter.LEFT, fill=tkinter.X)
+        ent.insert(10, defaults[idx])
+        #ent.pack(side=tkinter.RIGHT, expand=tkinter.YES, fill=tkinter.X)
+        entries.append((field, ent))
+    return entries
 
-# set some simulations parameters
-d_t = 1  # time step
-t_end = 10  # duration
 
-# set initial states
-pos_0 = [0.0, 0.0, 0.0]
-vel_0 = 8.0
-alpha_0 = 0
-beta_0 = 0
-orient_0 = [0.0, 0.0, 0.0]
-bodyrates_0 = [0.0, 0.0, 0.0]
-x_0 = [pos_0[0], pos_0[1], pos_0[2], vel_0, alpha_0, beta_0, orient_0[0], orient_0[1], orient_0[2],
-       bodyrates_0[0], bodyrates_0[1], bodyrates_0[2]]
+def make_textfields(frame, fields, defaults):
+    entries = []
+    for idx, field in enumerate(fields):
+        row = tkinter.Frame(frame)  # makes a new frame for every state
+        lab = tkinter.Label(row, width=15, text=field)
+        txt = tkinter.Text(row, height=1, width=10)
+        row.pack(side=tkinter.TOP, fill=tkinter.X, padx=5, pady=5)  # new frame = state: put below the one before
+        lab.pack(side=tkinter.LEFT)
+        txt.pack(side=tkinter.LEFT, fill=tkinter.X)
+        txt.insert(tkinter.END, defaults[idx])
+        entries.append((field, txt))
+    return entries
 
 
-u_0 = [-5, -5, 10000, 10000]
-# u_elevon_vec = [0, 0, ]
+def make_inputs(root_frame, fields, defaults):
+    inpts = []
+    for idx, field in enumerate(fields):
+        row = tkinter.Frame(root_frame)  # makes a new frame for every state
+        lab = tkinter.Label(row, width=15, text=field, anchor='w')
+        if idx < 2:  # for the deltas
+            scale = tkinter.Scale(row, from_=-45, to=45, tickinterval=15, length=200, orient=tkinter.HORIZONTAL)
+        else:  # for the rpms
+            scale = tkinter.Scale(row, from_=0, to=14000, tickinterval=7000, length=200, orient=tkinter.HORIZONTAL)
 
-# start simulation
-x = x_0
-u = u_0
-t = 0
+        scale.set(defaults[idx])
+        row.pack(side=tkinter.TOP, fill=tkinter.X, padx=5, pady=5)  # new frame = state: put below the one before
+        lab.pack(side=tkinter.LEFT)
+        scale.pack(side=tkinter.LEFT, fill=tkinter.X)
+        inpts.append((field, scale))
+    return inpts
 
-t_vec = [0]  # initialize array to store time stamps
-x_array = np.array([x_0])  # initialize array to store states
-u_array = np.array([u_0])  # initialize array to store inputs
 
-while t < t_end:
-    # calculate forces and moments with current states and control inputs
-    current_aero_forces_moments = aerodynamic_forces_moments(x, u)
+def fetch_numbers(entries):
+    ret = []
+    for entry in entries:
+        field = entry[0]
+        text = float(entry[1].get())
+        ret.append(text)
+        # print('%s: "%s"' % (field, text))
+    return ret
 
-    # calculate states derivatives
-    d_x = calculate_state_differentials(current_aero_forces_moments, x)
 
-    # update input vector
-    u = u_0
+def callback_calc():
+    results = []
+    x = fetch_numbers(entries)  # read states
+    u = fetch_numbers(input_scales)  # read inputs (from scales)
+    forces_moments = aerodynamic_forces_moments(x, u)
+    for idx, result_field in enumerate(res_disp):
+        result_field[1].delete(1.0, 'end')
+        result_field[1].insert('end', round(forces_moments[idx], 4))
 
-    # update states
-    for j in range(len(x)):
-        x[j] += d_x[j] * d_t
 
-    t += d_t
-    t_vec.append(t)
-    # print(x_array.shape)
-    # print("x: " + str(x_array.shape))
-    x_array = np.vstack((x_array, x))
-    u_array = np.vstack((u_array, u))
+# set up GUI
+root = tkinter.Tk()
+root.title("Static Forces and Moments Calculator")
+root.geometry("1000x500")
 
-print("states after simulation: " + str(x))
+# make labels and textfields for states input
+states_frame = tkinter.Frame(root)
+# states_frame.pack(side=tkinter.LEFT)
+states_frame.grid(row=0, column=0)
+entries = make_entryfields(states_frame, states_list, states_defaults)
 
-# plot_states_and_inputs(t_vec, x_array, u_array)
+# make slides for control inputs input
+input_frame = tkinter.Frame(root)
+input_frame.grid(row=0, column=1)
+# input_frame.pack(side=tkinter.LEFT)
+input_scales = make_inputs(input_frame, inputs_list, inputs_defaults)
+
+# display results
+results_frame = tkinter.Frame(root)
+results_frame.grid(row=0, column=2)
+# results_frame.pack(side=tkinter.LEFT)
+res_name = 'F_x [N]', 'F_y [N]', 'F_z [N]', 'M_x [Nm]', 'M_y [Nm]', 'M_z [Nm]'
+res_default = [0, 0, 0, 0, 0, 0]
+res_disp = make_textfields(results_frame, res_name, res_default)
+calc_button = tkinter.Button(results_frame, text='Calc', command=callback_calc).pack()
+
+
+root.mainloop()
